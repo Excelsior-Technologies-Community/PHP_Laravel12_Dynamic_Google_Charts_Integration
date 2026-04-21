@@ -2,9 +2,9 @@
 <html>
 
 <head>
-    <title>Laravel 12 Analytics Dashboard</title>
+    <title>Quarterly Analytics Dashboard</title>
 
-    <!-- Bootstrap + Google Font -->
+    <!-- Bootstrap + Font -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
 
@@ -15,7 +15,7 @@
         }
 
         .dashboard-header {
-            background: linear-gradient(135deg, #4e73df, #1cc88a);
+            background: linear-gradient(135deg, #36b9cc, #4e73df);
             color: white;
             border-radius: 12px 12px 0 0;
         }
@@ -35,17 +35,7 @@
         }
 
         .stat-card {
-            border-left: 5px solid #4e73df;
-        }
-
-        .growth-positive {
-            color: #1cc88a;
-            font-weight: 600;
-        }
-
-        .growth-negative {
-            color: #e74a3b;
-            font-weight: 600;
+            border-left: 5px solid #36b9cc;
         }
 
         select {
@@ -67,10 +57,10 @@
 <div class="container mt-5">
 
     <div class="card shadow-lg">
-        
+
         <!-- Header -->
         <div class="dashboard-header p-4">
-            <h3 class="mb-0">Laravel 12 Google Chart Example</h3>
+            <h3 class="mb-0">📈 Quarterly Analytics Dashboard</h3>
         </div>
 
         <div class="card-body">
@@ -87,32 +77,22 @@
                 </select>
             </form>
 
-            <!-- Stats Row -->
+            <!-- Stats -->
             <div class="row mb-4">
 
                 <!-- Total Users -->
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="card custom-card shadow-sm p-3 text-center stat-card">
                         <h6 class="text-muted">Total Users</h6>
                         <h3>{{ array_sum($users) }}</h3>
                     </div>
                 </div>
 
-                <!-- Current Month -->
-                <div class="col-md-4">
+                <!-- Active Quarters -->
+                <div class="col-md-6">
                     <div class="card custom-card shadow-sm p-3 text-center stat-card">
-                        <h6 class="text-muted">Current Month Users</h6>
-                        <h3>{{ $currentMonthCount }}</h3>
-                    </div>
-                </div>
-
-                <!-- Growth -->
-                <div class="col-md-4">
-                    <div class="card custom-card shadow-sm p-3 text-center stat-card">
-                        <h6 class="text-muted">Growth</h6>
-                        <h3 class="{{ $growth >= 0 ? 'growth-positive' : 'growth-negative' }}">
-                            {{ $growth }}%
-                        </h3>
+                        <h6 class="text-muted">Active Quarters</h6>
+                        <h3>{{ collect($users)->filter(fn($v) => $v > 0)->count() }}</h3>
                     </div>
                 </div>
 
@@ -120,7 +100,7 @@
 
             <!-- Chart -->
             <div class="chart-container shadow-sm">
-                <div id="google-line-chart" style="height: 500px;"></div>
+                <div id="google-pie-chart" style="height: 500px;"></div>
             </div>
 
         </div>
@@ -137,23 +117,23 @@
 
     function drawChart() {
         var data = google.visualization.arrayToDataTable([
-            ['Month', 'Users'],
+            ['Quarter', 'Users'],
             @php
-                foreach($users as $monthName => $count) {
-                    echo "['".$monthName."', ".$count."],";
+                foreach($users as $quarter => $count) {
+                    echo "['".$quarter."', ".$count."],";
                 }
             @endphp
         ]);
 
         var options = {
-            title: 'User Registration Trend',
-            curveType: 'function',
-            legend: { position: 'bottom' },
-            chartArea: { width: '80%', height: '70%' }
+            title: 'Quarterly User Distribution',
+            pieHole: 0.4,
+            legend: { position: 'right' },
+            chartArea: { width: '85%', height: '75%' }
         };
 
-        var chart = new google.visualization.LineChart(
-            document.getElementById('google-line-chart')
+        var chart = new google.visualization.PieChart(
+            document.getElementById('google-pie-chart')
         );
 
         chart.draw(data, options);

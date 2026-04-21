@@ -10,3 +10,4 @@ Route::get('/', function () {
 
 
 Route::get('chart', [GoogleChartController::class, 'index']);
+Route::get('quarter-chart', [GoogleChartController::class, 'quarterChart']);
