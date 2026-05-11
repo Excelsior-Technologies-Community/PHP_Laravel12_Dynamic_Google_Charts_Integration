@@ -4,44 +4,43 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
-use Carbon\Carbon;  
+use Carbon\Carbon;
 
 class GoogleChartController extends Controller
 {
-    // Month-wise Line Chart
     public function index(Request $request)
     {
         $year = $request->input('year', date('Y'));
 
-        $userData = User::selectRaw(
-            'COUNT(*) as count, MONTH(created_at) as month, MONTHNAME(created_at) as month_name'
-        )
+        $currentYearData = User::selectRaw('COUNT(*) as count, MONTH(created_at) as month')
             ->whereYear('created_at', $year)
-            ->groupByRaw('MONTH(created_at), MONTHNAME(created_at)')
+            ->groupBy('month')
             ->pluck('count', 'month');
 
-        $allMonths = [];
+        $previousYearData = User::selectRaw('COUNT(*) as count, MONTH(created_at) as month')
+            ->whereYear('created_at', $year - 1)
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        $chartData = [];
         for ($i = 1; $i <= 12; $i++) {
-            $monthName = Carbon::create()->month($i)->format('F');
-            $allMonths[$monthName] = $userData[$i] ?? 0;
+            $monthName = Carbon::create()->month($i)->format('M');
+            $chartData[] = [
+                'month' => $monthName,
+                'current' => $currentYearData[$i] ?? 0,
+                'previous' => $previousYearData[$i] ?? 0
+            ];
         }
 
-        // ===== NEW: Growth Calculation =====
-        $currentMonth = date('m');
+        $currentMonth = (int)date('m');
+        $currentMonthCount = $currentYearData[$currentMonth] ?? 0;
 
-        $currentMonthCount = User::whereYear('created_at', $year)
-            ->whereMonth('created_at', $currentMonth)
-            ->count();
-
-        // Handle previous month
         if ($currentMonth == 1) {
             $previousMonthCount = User::whereYear('created_at', $year - 1)
                 ->whereMonth('created_at', 12)
                 ->count();
         } else {
-            $previousMonthCount = User::whereYear('created_at', $year)
-                ->whereMonth('created_at', $currentMonth - 1)
-                ->count();
+            $previousMonthCount = $currentYearData[$currentMonth - 1] ?? 0;
         }
 
         $growth = 0;
@@ -49,22 +48,31 @@ class GoogleChartController extends Controller
             $growth = (($currentMonthCount - $previousMonthCount) / $previousMonthCount) * 100;
         }
 
+        $totalCount = array_sum($currentYearData->toArray());
+
+        if ($request->ajax()) {
+            return response()->json([
+                'chartData' => $chartData,
+                'total' => $totalCount,
+                'current' => $currentMonthCount,
+                'growth' => round($growth, 2)
+            ]);
+        }
+
         return view('chart', [
-            'users' => $allMonths,
+            'chartData' => $chartData,
             'selectedYear' => $year,
             'growth' => round($growth, 2),
-            'currentMonthCount' => $currentMonthCount
+            'total' => $totalCount,
+            'current' => $currentMonthCount
         ]);
     }
 
-    // Quarterly Pie Chart
     public function quarterChart(Request $request)
     {
-        $year = $request->input('year', date('Y')); // default current year
+        $year = $request->input('year', date('Y'));
 
-        $userData = User::selectRaw(
-            'COUNT(*) as count, QUARTER(created_at) as quarter'
-        )
+        $userData = User::selectRaw('COUNT(*) as count, QUARTER(created_at) as quarter')
             ->whereYear('created_at', $year)
             ->groupByRaw('QUARTER(created_at)')
             ->pluck('count', 'quarter');
